@@ -1,0 +1,19 @@
+[package]
+name = "okamoto-uchiyama"
+authors = ["<r0g3r5@protonmail.com>"]
+version = "0.1.0"
+edition = "2021"
+description = "An implementation of the Okamoto-Uchiyama cryptosystem in Rust"
+license = "MIT"
+readme = "README.md"
+categories = ["cryptography"]
+keywords = ["okamoto", "uchiyama", "cryptography", "homomorphic"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+num = "0.4.0"
+num-bigint-dig = { version = "0.8.2" }
+num-primes = "0.3.0"
+rand = "0.8.5"
+thiserror = "1.0"
