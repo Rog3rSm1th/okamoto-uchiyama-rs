@@ -13,4 +13,4 @@ pub mod error;
 pub mod key;
 
 // Re-exporting types from the 'crypto' module for external use
-pub use crypto::crypto::{OkamotoUchiyama, PrivateKey, PublicKey};
+pub use crypto::okamoto_uchiyama::{OkamotoUchiyama, PrivateKey, PublicKey};

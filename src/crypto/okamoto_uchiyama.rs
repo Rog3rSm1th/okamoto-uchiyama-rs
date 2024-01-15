@@ -1,4 +1,3 @@
-use crate::error::OkamotoUchiyamaError;
 use crate::key::KeySize;
 
 use num::One;
@@ -7,100 +6,8 @@ use num_bigint_dig::{BigUint, RandBigInt};
 use num_primes::Generator;
 use rand::thread_rng;
 
-/// Represents a Okamoto-Uchiyama public key.
-#[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
-pub struct PublicKey {
-    // modulus: p^2 * q
-    pub n: BigUint,
-    // Random integer in the range [2, n - 1]
-    pub g: BigUint,
-    // g^n mod n
-    pub h: BigUint,
-}
-
-impl PublicKey {
-    /// Generate a public key from n, g and h
-    pub fn new(n: &BigUint, g: &BigUint, h: &BigUint) -> PublicKey {
-        PublicKey {
-            n: n.clone(),
-            g: g.clone(),
-            h: h.clone(),
-        }
-    }
-
-    /// Performs homomorphic operation over two passed chiphers.
-    /// Okamoto-Uchiyama has additive homomorphic property, so resultant cipher
-    /// contains the sum of two numbers.
-    pub fn homomorphic_encrypt_two(
-        self,
-        c1: &BigUint,
-        c2: &BigUint,
-    ) -> Result<BigUint, OkamotoUchiyamaError> {
-        if c1 == &self.n || c2 == &self.n {
-            return Err(OkamotoUchiyamaError::CipherTooLarge);
-        }
-
-        // Calculate the product of the two ciphers and take the modulus by the public key n.
-        Ok((c1 * c2) % &self.n)
-    }
-
-    /// Performs homomorphic operation over multiple passed chiphers.
-    /// Okamoto-Uchiyama has additive homomorphic property, so resultant cipher
-    /// contains the sum of multiple numbers.
-    pub fn homomorphic_encrypt_multiple(
-        self,
-        ciphers: Vec<&BigUint>,
-    ) -> Result<BigUint, OkamotoUchiyamaError> {
-        // Check if any cipher in the vector is equal to the public key n.
-        if ciphers.contains(&&self.n) {
-            return Err(OkamotoUchiyamaError::CipherTooLarge);
-        }
-
-        // Calculate the product of all ciphers in the vector and return it.
-        let mut c = BigUint::one();
-        for cipher in ciphers {
-            c = &c * cipher;
-        }
-        Ok(c)
-    }
-}
-
-/// PrivateKey represents a Okamoto-Uchiyama private key.
-#[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
-pub struct PrivateKey {
-    // The public key corresponding to this private key
-    pub public_key: PublicKey,
-    // gd = g^(p-1) mod p^2, not mandatory, here to ease calculations
-    pub gd: BigUint,
-    // A large prime p,
-    pub p: BigUint,
-    // A large prime q
-    pub q: BigUint,
-    // p_squared = p^2,  not mandatory, here to ease calculations
-    pub p_squared: BigUint,
-}
-
-impl PrivateKey {
-    /// Generate a new private key from p, q and a public key
-    pub fn new(public_key: &PublicKey, p: &BigUint, q: &BigUint) -> PrivateKey {
-        let public_key = public_key.clone();
-        let p = p.clone();
-        let q = q.clone();
-
-        // Generate p^2
-        let p_squared = &p * &p;
-        // Generate gd
-        let gd = public_key.g.modpow(&(&p - &1u32), &p_squared) % &p_squared;
-        println!("{}", gd);
-        PrivateKey {
-            public_key,
-            gd,
-            p,
-            q,
-            p_squared,
-        }
-    }
-}
+pub use crate::crypto::private_key::PrivateKey;
+pub use crate::crypto::public_key::PublicKey;
 
 #[allow(clippy::upper_case_acronyms)]
 #[derive(Debug, Clone, Default)]
