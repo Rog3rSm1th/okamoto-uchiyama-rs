@@ -17,6 +17,6 @@ fn main() {
     );
 
     // Printing the public and private keys
-    println!("{:#?}", public_key);
-    println!("{:#?}", private_key);
+    println!("{}", public_key);
+    println!("{}", private_key);
 }

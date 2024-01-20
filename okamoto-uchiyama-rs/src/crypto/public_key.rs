@@ -4,6 +4,7 @@ use num::One;
 use num_bigint_dig::BigUint;
 
 pub use crate::crypto::private_key::PrivateKey;
+use std::fmt;
 
 /// Represents a Okamoto-Uchiyama public key.
 #[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
@@ -60,5 +61,16 @@ impl PublicKey {
             c = &c * cipher;
         }
         Ok(c)
+    }
+}
+
+// Implementation of the Display trait for the PublicKey struct
+impl fmt::Display for PublicKey {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "PublicKey {{\n  n: {},\n  g: {},\n  h: {}\n}}",
+            self.n, self.g, self.h
+        )
     }
 }

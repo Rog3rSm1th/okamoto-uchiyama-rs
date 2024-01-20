@@ -1,6 +1,7 @@
 use crate::crypto::okamoto_uchiyama::PublicKey;
 
 use num_bigint_dig::BigUint;
+use std::fmt;
 
 /// PrivateKey represents a Okamoto-Uchiyama private key.
 #[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
@@ -36,5 +37,22 @@ impl PrivateKey {
             q,
             p_squared,
         }
+    }
+}
+
+// Implementation of the Display trait for the PrivateKey struct
+impl fmt::Display for PrivateKey {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "PrivateKey {{
+  public_key: {},
+  gd: {},
+  p: {},
+  q: {},
+  p_squared: {}
+}}",
+            self.public_key, self.gd, self.p, self.q, self.p_squared
+        )
     }
 }
