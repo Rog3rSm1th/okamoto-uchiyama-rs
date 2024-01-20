@@ -28,7 +28,7 @@ impl PrivateKey {
         let p_squared = &p * &p;
         // Generate gd
         let gd = public_key.g.modpow(&(&p - &1u32), &p_squared) % &p_squared;
-        println!("{}", gd);
+
         PrivateKey {
             public_key,
             gd,
