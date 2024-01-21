@@ -1,5 +1,6 @@
 use crate::crypto::okamoto_uchiyama::PublicKey;
-
+use crate::pem::PemEncodable;
+use base64::{engine::general_purpose, Engine as _};
 use num_bigint_dig::BigUint;
 use std::fmt;
 
@@ -38,6 +39,17 @@ impl PrivateKey {
             p_squared,
         }
     }
+
+    /// Convert the private key to DER format
+    pub fn to_der(&self) -> Vec<u8> {
+        let mut der = Vec::new();
+        der.extend_from_slice(&self.public_key.to_der());
+        der.extend_from_slice(&self.gd.to_bytes_be());
+        der.extend_from_slice(&self.p.to_bytes_be());
+        der.extend_from_slice(&self.q.to_bytes_be());
+        der.extend_from_slice(&self.p_squared.to_bytes_be());
+        der
+    }
 }
 
 // Implementation of the Display trait for the PrivateKey struct
@@ -54,5 +66,16 @@ impl fmt::Display for PrivateKey {
 }}",
             self.public_key, self.gd, self.p, self.q, self.p_squared
         )
+    }
+}
+
+/// Implements the PemEncodable trait for PrivateKey struct
+impl PemEncodable for PrivateKey {
+    fn to_pem(&self) -> String {
+        let mut pem = String::new();
+        pem.push_str("-----BEGIN PRIVATE KEY-----\n");
+        pem.push_str(&general_purpose::STANDARD.encode(&self.to_der()));
+        pem.push_str("\n-----END PRIVATE KEY-----\n");
+        pem
     }
 }

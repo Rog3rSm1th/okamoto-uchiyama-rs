@@ -12,6 +12,7 @@ keywords = ["okamoto", "uchiyama", "cryptography", "homomorphic"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+base64 = "0.21.7"
 num = "0.4.0"
 num-bigint-dig = { version = "0.8.2" }
 num-primes = "0.3.0"

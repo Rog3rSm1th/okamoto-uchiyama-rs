@@ -1,10 +1,13 @@
 use crate::error::OkamotoUchiyamaError;
+use crate::pem::PemEncodable;
 
+use base64::engine::general_purpose;
+use base64::Engine;
 use num::One;
 use num_bigint_dig::BigUint;
+use std::fmt;
 
 pub use crate::crypto::private_key::PrivateKey;
-use std::fmt;
 
 /// Represents a Okamoto-Uchiyama public key.
 #[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
@@ -62,9 +65,18 @@ impl PublicKey {
         }
         Ok(c)
     }
+
+    /// Convert the public key to DER format
+    pub fn to_der(&self) -> Vec<u8> {
+        let mut der = Vec::new();
+        der.extend_from_slice(&self.n.to_bytes_be());
+        der.extend_from_slice(&self.g.to_bytes_be());
+        der.extend_from_slice(&self.h.to_bytes_be());
+        der
+    }
 }
 
-// Implementation of the Display trait for the PublicKey struct
+// Implements Display trait for the PublicKey struct
 impl fmt::Display for PublicKey {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
@@ -72,5 +84,16 @@ impl fmt::Display for PublicKey {
             "PublicKey {{\n  n: {},\n  g: {},\n  h: {}\n}}",
             self.n, self.g, self.h
         )
+    }
+}
+
+/// Implements the PemEncodable trait from PublicKey struct
+impl PemEncodable for PublicKey {
+    fn to_pem(&self) -> String {
+        let mut pem = String::new();
+        pem.push_str("-----BEGIN PUBLIC KEY-----\n");
+        pem.push_str(&general_purpose::STANDARD.encode(&self.to_der()));
+        pem.push_str("\n-----END PUBLIC KEY-----\n");
+        pem
     }
 }
