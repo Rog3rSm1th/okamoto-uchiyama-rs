@@ -1,5 +1,5 @@
 use crate::error::OkamotoUchiyamaError;
-use crate::pem::PemEncodable;
+use crate::pem::{Asn1Encode, PemEncodable};
 
 use base64::engine::general_purpose;
 use base64::Engine;
@@ -9,7 +9,7 @@ use std::fmt;
 
 pub use crate::crypto::private_key::PrivateKey;
 
-/// Represents a Okamoto-Uchiyama public key.
+/// Represents an Okamoto-Uchiyama public key.
 #[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
 pub struct PublicKey {
     // modulus: p^2 * q
@@ -21,7 +21,7 @@ pub struct PublicKey {
 }
 
 impl PublicKey {
-    /// Generate a public key from n, g and h
+    /// Generate a public key from n, g, and h
     pub fn new(n: &BigUint, g: &BigUint, h: &BigUint) -> PublicKey {
         PublicKey {
             n: n.clone(),
@@ -30,7 +30,7 @@ impl PublicKey {
         }
     }
 
-    /// Performs homomorphic operation over two passed chiphers.
+    /// Performs homomorphic operation over two passed ciphers.
     /// Okamoto-Uchiyama has additive homomorphic property, so resultant cipher
     /// contains the sum of two numbers.
     pub fn homomorphic_encrypt_two(
@@ -46,7 +46,7 @@ impl PublicKey {
         Ok((c1 * c2) % &self.n)
     }
 
-    /// Performs homomorphic operation over multiple passed chiphers.
+    /// Performs homomorphic operation over multiple passed ciphers.
     /// Okamoto-Uchiyama has additive homomorphic property, so resultant cipher
     /// contains the sum of multiple numbers.
     pub fn homomorphic_encrypt_multiple(
@@ -66,12 +66,12 @@ impl PublicKey {
         Ok(c)
     }
 
-    /// Convert the public key to DER format
+    /// Convert the public key to ASN.1 DER format
     pub fn to_der(&self) -> Vec<u8> {
         let mut der = Vec::new();
-        der.extend_from_slice(&self.n.to_bytes_be());
-        der.extend_from_slice(&self.g.to_bytes_be());
-        der.extend_from_slice(&self.h.to_bytes_be());
+        der.extend_from_slice(&self.n.to_asn1_der());
+        der.extend_from_slice(&self.g.to_asn1_der());
+        der.extend_from_slice(&self.h.to_asn1_der());
         der
     }
 }
@@ -87,7 +87,7 @@ impl fmt::Display for PublicKey {
     }
 }
 
-/// Implements the PemEncodable trait from PublicKey struct
+/// Implements the PemEncodable trait for PublicKey struct
 impl PemEncodable for PublicKey {
     fn to_pem(&self) -> String {
         let mut pem = String::new();

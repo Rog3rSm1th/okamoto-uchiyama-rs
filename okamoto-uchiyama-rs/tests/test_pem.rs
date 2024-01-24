@@ -16,7 +16,7 @@ fn test_public_key_pem_encoding() {
 
     // Expected PEM-encoded string
     let expected_pem = "-----BEGIN PUBLIC KEY-----\n\
-                        AjI0dMcB4dOT9wHcIAPx\n\
+                        AgUCMjR0xwIFAeHTk/cCBQHcIAPx\n\
                         -----END PUBLIC KEY-----\n";
 
     // Assert equality
@@ -42,7 +42,7 @@ fn test_private_key_pem_encoding() {
 
     // Expected PEM-encoded string
     let expected_pem = "-----BEGIN PRIVATE KEY-----\n\
-                        AjI0dMcB4dOT9wHcIAPxH2N6B9MJLz036Q==\n\
+                        AgUCMjR0xwIFAeHTk/cCBQHcIAPxAgMfY3oCAgfTAgIJLwIDPTfp\n\
                         -----END PRIVATE KEY-----\n";
 
     // Assert equality

@@ -1,10 +1,10 @@
 use crate::crypto::okamoto_uchiyama::PublicKey;
-use crate::pem::PemEncodable;
+use crate::pem::{Asn1Encode, PemEncodable};
 use base64::{engine::general_purpose, Engine as _};
 use num_bigint_dig::BigUint;
 use std::fmt;
 
-/// PrivateKey represents a Okamoto-Uchiyama private key.
+/// PrivateKey represents an Okamoto-Uchiyama private key.
 #[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
 pub struct PrivateKey {
     // The public key corresponding to this private key
@@ -20,7 +20,7 @@ pub struct PrivateKey {
 }
 
 impl PrivateKey {
-    /// Generate a new private key from p, q and a public key
+    /// Generate a new private key from p, q, and a public key
     pub fn new(public_key: &PublicKey, p: &BigUint, q: &BigUint) -> PrivateKey {
         let public_key = public_key.clone();
         let p = p.clone();
@@ -40,14 +40,14 @@ impl PrivateKey {
         }
     }
 
-    /// Convert the private key to DER format
+    /// Convert the private key to ASN.1 DER format
     pub fn to_der(&self) -> Vec<u8> {
         let mut der = Vec::new();
         der.extend_from_slice(&self.public_key.to_der());
-        der.extend_from_slice(&self.gd.to_bytes_be());
-        der.extend_from_slice(&self.p.to_bytes_be());
-        der.extend_from_slice(&self.q.to_bytes_be());
-        der.extend_from_slice(&self.p_squared.to_bytes_be());
+        der.extend_from_slice(&self.gd.to_asn1_der());
+        der.extend_from_slice(&self.p.to_asn1_der());
+        der.extend_from_slice(&self.q.to_asn1_der());
+        der.extend_from_slice(&self.p_squared.to_asn1_der());
         der
     }
 }
