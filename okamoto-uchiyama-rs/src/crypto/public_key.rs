@@ -1,6 +1,7 @@
 use crate::error::OkamotoUchiyamaError;
-use crate::pem::{Asn1Encode, PemEncodable};
+use crate::pem::PemEncodable;
 
+use asn1::BigUint as Asn1BigUint;
 use base64::engine::general_purpose;
 use base64::Engine;
 use num::One;
@@ -65,15 +66,6 @@ impl PublicKey {
         }
         Ok(c)
     }
-
-    /// Convert the public key to ASN.1 DER format
-    pub fn to_der(&self) -> Vec<u8> {
-        let mut der = Vec::new();
-        der.extend_from_slice(&self.n.to_asn1_der());
-        der.extend_from_slice(&self.g.to_asn1_der());
-        der.extend_from_slice(&self.h.to_asn1_der());
-        der
-    }
 }
 
 // Implements Display trait for the PublicKey struct
@@ -91,9 +83,32 @@ impl fmt::Display for PublicKey {
 impl PemEncodable for PublicKey {
     fn to_pem(&self) -> String {
         let mut pem = String::new();
+
+        // Convert public key components to ASN.1
+        let n_bytes = self.n.clone().to_bytes_be();
+        let n_asn1 = Asn1BigUint::new(&n_bytes);
+
+        let g_bytes = self.g.clone().to_bytes_be();
+        let g_asn1 = Asn1BigUint::new(&g_bytes);
+
+        let h_bytes = self.h.clone().to_bytes_be();
+        let h_asn1 = Asn1BigUint::new(&h_bytes);
+
+        // Write all elements to ASN.1 Sequence
+        let result = asn1::write(|w| {
+            w.write_element(&asn1::SequenceWriter::new(&|w| {
+                w.write_element(&n_asn1)?; // Add n to the sequence
+                w.write_element(&g_asn1)?; // Add g to the sequence
+                w.write_element(&h_asn1)?; // Add h to the sequence
+                Ok(())
+            }))
+        });
+
+        // Encode the ASN.1 sequence using Base64
         pem.push_str("-----BEGIN PUBLIC KEY-----\n");
-        pem.push_str(&general_purpose::STANDARD.encode(&self.to_der()));
+        pem.push_str(&general_purpose::STANDARD.encode(result.unwrap_or_else(|_| vec![])));
         pem.push_str("\n-----END PUBLIC KEY-----\n");
+
         pem
     }
 }

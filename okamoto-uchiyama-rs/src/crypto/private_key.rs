@@ -1,5 +1,6 @@
 use crate::crypto::okamoto_uchiyama::PublicKey;
-use crate::pem::{Asn1Encode, PemEncodable};
+use crate::pem::PemEncodable;
+use asn1::BigUint as Asn1BigUint;
 use base64::{engine::general_purpose, Engine as _};
 use num_bigint_dig::BigUint;
 use std::fmt;
@@ -39,17 +40,6 @@ impl PrivateKey {
             p_squared,
         }
     }
-
-    /// Convert the private key to ASN.1 DER format
-    pub fn to_der(&self) -> Vec<u8> {
-        let mut der = Vec::new();
-        der.extend_from_slice(&self.public_key.to_der());
-        der.extend_from_slice(&self.gd.to_asn1_der());
-        der.extend_from_slice(&self.p.to_asn1_der());
-        der.extend_from_slice(&self.q.to_asn1_der());
-        der.extend_from_slice(&self.p_squared.to_asn1_der());
-        der
-    }
 }
 
 // Implementation of the Display trait for the PrivateKey struct
@@ -73,9 +63,49 @@ impl fmt::Display for PrivateKey {
 impl PemEncodable for PrivateKey {
     fn to_pem(&self) -> String {
         let mut pem = String::new();
+
+        // Convert public key components to ASN.1
+        let n_bytes = self.public_key.n.clone().to_bytes_be();
+        let n_asn1 = Asn1BigUint::new(&n_bytes);
+
+        let g_bytes = self.public_key.g.clone().to_bytes_be();
+        let g_asn1 = Asn1BigUint::new(&g_bytes);
+
+        let h_bytes = self.public_key.h.clone().to_bytes_be();
+        let h_asn1 = Asn1BigUint::new(&h_bytes);
+
+        // Convert private key components to ASN.1
+        let gd_bytes = self.gd.clone().to_bytes_be();
+        let gd_asn1 = Asn1BigUint::new(&gd_bytes);
+
+        let p_bytes = self.p.clone().to_bytes_be();
+        let p_asn1 = Asn1BigUint::new(&p_bytes);
+
+        let q_bytes = self.q.clone().to_bytes_be();
+        let q_asn1 = Asn1BigUint::new(&q_bytes);
+
+        let p_squared_bytes = self.p_squared.clone().to_bytes_be();
+        let p_squared_bytes_asn1 = Asn1BigUint::new(&p_squared_bytes);
+
+        // Write all elements to ASN.1 Sequence
+        let result = asn1::write(|w| {
+            w.write_element(&asn1::SequenceWriter::new(&|w| {
+                w.write_element(&n_asn1)?; // Add n to the sequence
+                w.write_element(&g_asn1)?; // Add g to the sequence
+                w.write_element(&h_asn1)?; // Add h to the sequence
+                w.write_element(&gd_asn1)?; // Add gd to the sequence
+                w.write_element(&p_asn1)?; // Add p to the sequence
+                w.write_element(&q_asn1)?; // Add q to the sequence
+                w.write_element(&p_squared_bytes_asn1)?; // Add p_squared to the sequence
+                Ok(())
+            }))
+        });
+
+        // Encode the ASN.1 sequence using Base64
         pem.push_str("-----BEGIN PRIVATE KEY-----\n");
-        pem.push_str(&general_purpose::STANDARD.encode(&self.to_der()));
+        pem.push_str(&general_purpose::STANDARD.encode(result.unwrap_or_else(|_| vec![])));
         pem.push_str("\n-----END PRIVATE KEY-----\n");
+
         pem
     }
 }
