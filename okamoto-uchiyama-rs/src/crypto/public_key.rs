@@ -2,7 +2,9 @@ use crate::error::OkamotoUchiyamaError;
 use crate::pem::PemEncodable;
 
 use asn1::BigUint as Asn1BigUint;
+use asn1::ParseError;
 use base64::engine::general_purpose;
+use base64::engine::general_purpose::STANDARD;
 use base64::Engine;
 use num::One;
 use num_bigint_dig::BigUint;
@@ -29,6 +31,58 @@ impl PublicKey {
             g: g.clone(),
             h: h.clone(),
         }
+    }
+
+    /// Decode a PEM-encoded public key string into a PublicKey instance
+    pub fn from_pem(pem: &str) -> Result<Self, OkamotoUchiyamaError> {
+        // Trim the starting and ending spaces/newlines
+        let pem = pem.trim();
+
+        // Check if the PEM string starts and ends with the correct tags
+        if !pem.starts_with("-----BEGIN PUBLIC KEY-----")
+            || !pem.ends_with("-----END PUBLIC KEY-----")
+        {
+            return Err(OkamotoUchiyamaError::PemDecodingError);
+        }
+
+        // Extract the base64-encoded ASN.1 sequence between the tags
+        let base64_encoded = pem
+            .trim_start_matches("-----BEGIN PUBLIC KEY-----")
+            .trim_end_matches("-----END PUBLIC KEY-----")
+            .trim();
+
+        // Decode the base64-encoded ASN.1 sequence using Engine::decode
+        let asn1_decoded = STANDARD
+            .decode(base64_encoded)
+            .map_err(|_| OkamotoUchiyamaError::PemDecodingError)?;
+
+        // Parse the ASN.1 sequence into the PublicKey struct
+        let (n, g, h) =
+            asn1::parse::<_, ParseError, _>(&asn1_decoded, |d: &mut asn1::Parser<'_>| {
+                d.read_element::<asn1::Sequence>()?
+                    .parse::<_, ParseError, _>(|d| {
+                        // Parse ASN.1 BigUint elements
+                        let n_asn1 = d.read_element::<Asn1BigUint>()?;
+                        let g_asn1 = d.read_element::<Asn1BigUint>()?;
+                        let h_asn1 = d.read_element::<Asn1BigUint>()?;
+
+                        // Convert ASN.1 BigUint to BigUint
+                        let n_bytes = n_asn1.as_bytes();
+                        let g_bytes = g_asn1.as_bytes();
+                        let h_bytes = h_asn1.as_bytes();
+
+                        // Convert bytes back to BigUint
+                        let n = BigUint::from_bytes_be(&n_bytes);
+                        let g = BigUint::from_bytes_be(&g_bytes);
+                        let h = BigUint::from_bytes_be(&h_bytes);
+
+                        Ok((n, g, h))
+                    })
+            })
+            .map_err(|_| OkamotoUchiyamaError::PemDecodingError)?;
+
+        // Create and return PublicKey instance
+        Ok(PublicKey::new(&n, &g, &h))
     }
 
     /// Performs homomorphic operation over two passed ciphers.
