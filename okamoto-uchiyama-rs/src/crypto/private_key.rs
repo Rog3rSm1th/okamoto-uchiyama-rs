@@ -1,5 +1,7 @@
 use crate::crypto::okamoto_uchiyama::PublicKey;
+use crate::error::OkamotoUchiyamaError;
 use crate::pem::PemEncodable;
+
 use asn1::BigUint as Asn1BigUint;
 use base64::{engine::general_purpose, Engine as _};
 use num_bigint_dig::BigUint;
@@ -39,6 +41,77 @@ impl PrivateKey {
             q,
             p_squared,
         }
+    }
+
+    /// Decode a PEM-encoded private key string into a PrivateKey instance
+    pub fn from_pem(pem: &str) -> Result<Self, OkamotoUchiyamaError> {
+        // Trim the starting and ending spaces/newlines
+        let pem = pem.trim();
+
+        // Check if the PEM string starts and ends with the correct tags
+        if !pem.starts_with("-----BEGIN PRIVATE KEY-----")
+            || !pem.ends_with("-----END PRIVATE KEY-----")
+        {
+            return Err(OkamotoUchiyamaError::PemDecodingError);
+        }
+
+        // Extract the base64-encoded ASN.1 sequence between the tags
+        let base64_encoded = pem
+            .trim_start_matches("-----BEGIN PRIVATE KEY-----")
+            .trim_end_matches("-----END PRIVATE KEY-----")
+            .trim();
+
+        // Decode the base64-encoded ASN.1 sequence using Engine::decode
+        let asn1_decoded = general_purpose::STANDARD
+            .decode(base64_encoded)
+            .map_err(|_| OkamotoUchiyamaError::PemDecodingError)?;
+
+        // Parse the ASN.1 sequence into the PrivateKey struct
+        let (n, g, h, gd, p, q, p_squared) =
+            asn1::parse::<_, asn1::ParseError, _>(&asn1_decoded, |d: &mut asn1::Parser<'_>| {
+                d.read_element::<asn1::Sequence>()?
+                    .parse::<_, asn1::ParseError, _>(|d| {
+                        // Parse ASN.1 BigUint elements
+                        let n_asn1 = d.read_element::<Asn1BigUint>()?;
+                        let g_asn1 = d.read_element::<Asn1BigUint>()?;
+                        let h_asn1 = d.read_element::<Asn1BigUint>()?;
+                        let gd_asn1 = d.read_element::<Asn1BigUint>()?;
+                        let p_asn1 = d.read_element::<Asn1BigUint>()?;
+                        let q_asn1 = d.read_element::<Asn1BigUint>()?;
+                        let p_squared_asn1 = d.read_element::<Asn1BigUint>()?;
+
+                        // Convert ASN.1 BigUint to BigUint
+                        let n_bytes = n_asn1.as_bytes();
+                        let g_bytes = g_asn1.as_bytes();
+                        let h_bytes = h_asn1.as_bytes();
+                        let gd_bytes = gd_asn1.as_bytes();
+                        let p_bytes = p_asn1.as_bytes();
+                        let q_bytes = q_asn1.as_bytes();
+                        let p_squared_bytes = p_squared_asn1.as_bytes();
+
+                        // Convert bytes back to BigUint
+                        let n = BigUint::from_bytes_be(&n_bytes);
+                        let g = BigUint::from_bytes_be(&g_bytes);
+                        let h = BigUint::from_bytes_be(&h_bytes);
+                        let gd = BigUint::from_bytes_be(&gd_bytes);
+                        let p = BigUint::from_bytes_be(&p_bytes);
+                        let q = BigUint::from_bytes_be(&q_bytes);
+                        let p_squared = BigUint::from_bytes_be(&p_squared_bytes);
+
+                        Ok((n, g, h, gd, p, q, p_squared))
+                    })
+            })
+            .map_err(|_| OkamotoUchiyamaError::PemDecodingError)?;
+
+        // Create and return PrivateKey instance
+        let public_key = PublicKey::new(&n, &g, &h);
+        Ok(PrivateKey {
+            public_key,
+            gd,
+            p,
+            q,
+            p_squared,
+        })
     }
 }
 
