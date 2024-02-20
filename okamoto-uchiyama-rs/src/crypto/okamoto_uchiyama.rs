@@ -6,6 +6,7 @@ use num_bigint_dig::{BigUint, RandBigInt};
 use num_primes::Generator;
 use rand::thread_rng;
 
+use crate::crypto::ciphertext::Ciphertext;
 pub use crate::crypto::private_key::PrivateKey;
 pub use crate::crypto::public_key::PublicKey;
 
@@ -43,14 +44,14 @@ impl OkamotoUchiyama {
         };
 
         // Calculate a large prime number with `length / 3` bit length
-        let p_prime = Generator::new_prime((&length / 3) as usize);
+        let p_prime = Generator::new_prime((length / 3) as usize);
         // Convert the prime number to BigUint
-        let p = BigUint::from_bytes_be(&p_prime.clone().to_bytes_be());
+        let p = BigUint::from_bytes_be(&p_prime.to_bytes_be());
 
         // Calculate another large prime number with `length / 2` bit length
-        let q_prime = Generator::new_prime((&length / 2) as usize);
+        let q_prime = Generator::new_prime((length / 2) as usize);
         // Convert the prime number to BigUint
-        let q = BigUint::from_bytes_be(&q_prime.clone().to_bytes_be());
+        let q = BigUint::from_bytes_be(&q_prime.to_bytes_be());
 
         // Calculate n = p^2 * q
         let p_squared = &p * &p;
@@ -113,23 +114,26 @@ impl OkamotoUchiyama {
     }
 
     /// Encrypt a message using the public key.
-    pub fn encrypt(message: &BigUint, public_key: &PublicKey) -> BigUint {
+    pub fn encrypt(message: &BigUint, public_key: &PublicKey) -> Ciphertext {
         // Choose a random integer r from {1...n-1}.
         let mut rng = thread_rng();
         let n_minus_1 = &public_key.n - &BigUint::one();
         let r = rng.gen_biguint_range(&BigUint::one(), &n_minus_1);
 
         // Compute the ciphertext as c = (g^m * h^r) mod n.
-        (public_key.g.modpow(&message, &public_key.n) * public_key.h.modpow(&r, &public_key.n))
-            % &public_key.n
+        let ciphertext_value = (public_key.g.modpow(&message, &public_key.n)
+            * public_key.h.modpow(&r, &public_key.n))
+            % &public_key.n;
+
+        Ciphertext::new(ciphertext_value)
     }
 
     /// Decrypts a ciphertext using the provided private key.
-    pub fn decrypt(ciphertext: &BigUint, private_key: &PrivateKey) -> BigUint {
+    pub fn decrypt(ciphertext: &Ciphertext, private_key: &PrivateKey) -> BigUint {
         let pminus1 = &private_key.p - 1u32;
 
         // c^(p-1) mod p^2
-        let a = ciphertext.modpow(&pminus1, &private_key.p_squared);
+        let a = ciphertext.value().modpow(&pminus1, &private_key.p_squared);
 
         // L1(a) = (a - 1) / p
         let l1 = (a - 1u32) / &private_key.p.clone();

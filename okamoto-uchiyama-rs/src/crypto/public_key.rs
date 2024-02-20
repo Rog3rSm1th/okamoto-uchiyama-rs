@@ -1,3 +1,4 @@
+use crate::crypto::ciphertext::Ciphertext;
 use crate::error::OkamotoUchiyamaError;
 use crate::pem::PemEncodable;
 
@@ -85,40 +86,42 @@ impl PublicKey {
         Ok(PublicKey::new(&n, &g, &h))
     }
 
-    /// Performs homomorphic operation over two passed ciphers.
-    /// Okamoto-Uchiyama has additive homomorphic property, so resultant cipher
+    /// Performs homomorphic operation over two passed ciphertexts.
+    /// Okamoto-Uchiyama has additive homomorphic property, so the resultant ciphertext
     /// contains the sum of two numbers.
     pub fn homomorphic_encrypt_two(
-        self,
-        c1: &BigUint,
-        c2: &BigUint,
-    ) -> Result<BigUint, OkamotoUchiyamaError> {
-        if c1 == &self.n || c2 == &self.n {
+        &self,
+        c1: &Ciphertext,
+        c2: &Ciphertext,
+    ) -> Result<Ciphertext, OkamotoUchiyamaError> {
+        if c1.value() == &self.n || c2.value() == &self.n {
             return Err(OkamotoUchiyamaError::CipherTooLarge);
         }
 
-        // Calculate the product of the two ciphers and take the modulus by the public key n.
-        Ok((c1 * c2) % &self.n)
+        // Calculate the product of the two ciphertexts and take the modulus by the public key n.
+        let result_value = (c1.value() * c2.value()) % &self.n;
+        Ok(Ciphertext::new(result_value))
     }
 
-    /// Performs homomorphic operation over multiple passed ciphers.
-    /// Okamoto-Uchiyama has additive homomorphic property, so resultant cipher
+    /// Performs homomorphic operation over multiple passed ciphertexts.
+    /// Okamoto-Uchiyama has additive homomorphic property, so the resultant ciphertext
     /// contains the sum of multiple numbers.
     pub fn homomorphic_encrypt_multiple(
-        self,
-        ciphers: Vec<&BigUint>,
-    ) -> Result<BigUint, OkamotoUchiyamaError> {
-        // Check if any cipher in the vector is equal to the public key n.
-        if ciphers.contains(&&self.n) {
+        &self,
+        ciphers: Vec<&Ciphertext>,
+    ) -> Result<Ciphertext, OkamotoUchiyamaError> {
+        // Check if any ciphertext in the vector has the same value as the public key n.
+        if ciphers.iter().any(|&cipher| cipher.value() == &self.n) {
             return Err(OkamotoUchiyamaError::CipherTooLarge);
         }
 
-        // Calculate the product of all ciphers in the vector and return it.
-        let mut c = BigUint::one();
+        // Calculate the product of all ciphertexts in the vector and return it.
+        let mut result = BigUint::one();
         for cipher in ciphers {
-            c = &c * cipher;
+            result = &result * cipher.value();
         }
-        Ok(c)
+        let result_value = result % &self.n;
+        Ok(Ciphertext::new(result_value))
     }
 }
 
