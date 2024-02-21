@@ -1,4 +1,5 @@
 use num_bigint_dig::BigUint;
+use okamoto_uchiyama::crypto::ciphertext::Ciphertext;
 use okamoto_uchiyama::pem::PemEncodable;
 use okamoto_uchiyama::{PrivateKey, PublicKey};
 
@@ -92,4 +93,37 @@ fn test_parse_private_key_from_pem() {
 
     // Assert equality between the parsed and expected private keys
     assert_eq!(parsed_private_key, expected_private_key);
+}
+
+#[test]
+fn test_ciphertext_pem_encoding() {
+    // Create a sample ciphertext
+    let ciphertext = Ciphertext::new(BigUint::from(1234567890u64));
+
+    // Encode to PEM
+    let pem_str = ciphertext.to_pem();
+
+    // Expected PEM-encoded string
+    let expected_pem = "-----BEGIN CIPHERTEXT-----\n\
+                        AgRJlgLS\n\
+                        -----END CIPHERTEXT-----\n";
+
+    // Assert equality
+    assert_eq!(pem_str, expected_pem);
+}
+
+#[test]
+fn test_parse_ciphertext_from_pem() {
+    // Define the PEM-encoded ciphertext string
+    let pem_str = "-----BEGIN CIPHERTEXT-----\n\
+                    AgRJlgLS\n\
+                    -----END CIPHERTEXT-----\n";
+
+    // Parse the PEM-encoded string into a Ciphertext instance
+    let parsed_ciphertext = Ciphertext::from_pem(pem_str).unwrap();
+
+    let expected_ciphertext = Ciphertext::new(BigUint::from(1234567890u64));
+
+    // Assert equality between the parsed and expected ciphertexts
+    assert_eq!(parsed_ciphertext, expected_ciphertext);
 }
