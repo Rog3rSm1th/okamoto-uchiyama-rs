@@ -1,4 +1,4 @@
-# okamoto-uchiyama-rust
+# okamoto-uchiyama-rs
 
 The Okamoto–Uchiyama cryptosystem is a public key cryptosystem proposed in 1998 by Tatsuaki Okamoto and Shigenori Uchiyama. The scheme is an additive homomorphic cryptosystem; this means that, given only the public key and the encryption of **`m_1`** and **`m_2`**, one can compute the encryption of **`m_1 + m_2`**.
 
